@@ -1,0 +1,55 @@
+# ============================================================
+# Kendall-Tau Log Reconciliation 实验统一配置（单一配置源）
+# 修改 docker 段后，运行: python scripts/prepare_env.py
+# 将参数同步到 .env（docker compose 自动读取）。
+# ============================================================
+
+# ---- Docker / Cassandra 集群部署 ----
+docker:
+  image: cassandra:4.1              # 镜像名:标签
+  cluster_name: ktau                # 集群名（也是 compose 项目名）
+  dc: dc1                           # Cassandra data center
+  rack: rack1                       # Cassandra rack
+  network: ktau-net                 # compose 网络名（定义于 docker-compose.yml，勿改）
+  container_prefix: ktau-cass       # 容器名前缀，节点 i -> {prefix}-{i}
+  client_port: 9042                 # 宿主机映射端口 -> 容器 9042
+  heap_size: 1G                     # JVM MAX_HEAP_SIZE（每节点）
+  heap_newsize: 256M                # JVM HEAP_NEWSIZE（每节点）
+  cpu_limit: "2.0"                  # 每节点 CPU 上限（cpus）
+  mem_limit: 3G                     # 每节点内存上限
+
+# ---- Cassandra 集群规模与连接 ----
+cluster:
+  contact_points: ["127.0.0.1"]     # 客户端连接地址（cass-1 映射端口）
+  port: 9042
+  keyspace: ktau                    # 实验 keyspace
+  rf: 2                             # replication_factor
+  n_nodes: 4                        # 集群节点数（docker-compose 拓扑按此设计）
+
+data:
+  dataset: BGL
+  raw_file: data/BGL_2k.log
+  max_ops: 2000
+  seed: 42
+
+model:
+  N: 8                # 逻辑副本数
+  M: 24               # 每个 trial 的发散操作数
+  trials: 30          # 每配置试验次数
+  seed: 42            # 随机种子
+  obs: 0.9            # 副本观测比例
+  noise: 0.05         # 并发对相邻对换噪声概率
+  skew_us: 500        # 每副本时钟偏移上限(微秒)
+
+monitor:
+  interval_s: 1.0
+  threshold: 0.05
+  window_ops: 20        # 监控窗口（最近操作数）
+  write_rate: 100       # 监控流写入速率 ops/s
+  steady_ops: 120       # 稳态操作数
+  drift_ops: 120        # 排序漂移步数（重排窗口，不新增操作）
+  converge_ops: 40      # 收敛步数（冲刷窗口分歧）
+  partition_ops: 120    # 集合发散步数（A/B 组分别接收）
+  heal_ops: 60          # 愈合步数
+
+results_dir: results
