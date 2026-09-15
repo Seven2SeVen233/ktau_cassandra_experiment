@@ -10,5 +10,5 @@ dependencies:
   - pip
   - pip:
       - cassandra-driver==3.30.1
-      # 可选：图表复现
+      # optional: figure reproduction
       # - matplotlib>=3.8

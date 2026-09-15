@@ -1,8 +1,9 @@
-# Kendall-Tau Log Reconciliation 实验核心依赖（Python 3.10+，已在 3.13 验证）
+# Core dependencies for the Kendall-Tau Log Reconciliation experiments
+# (Python 3.10+, verified on 3.13)
 cassandra-driver==3.30.1
 numpy==2.5.3
 pandas==3.0.5
 PyYAML==6.0.3
 
-# 可选：图表复现（重新生成 docs/fig_e4_trajectory.png 等）
+# Optional: figure reproduction (regenerate docs/fig_e4_trajectory.png etc.)
 # matplotlib==3.11.1

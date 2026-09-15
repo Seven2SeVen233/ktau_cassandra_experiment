@@ -1,6 +1,8 @@
-# Cassandra 4.1 集群拓扑（4 节点，串行健康依赖保证启动顺序）。
-# 所有可变参数来自项目根目录 .env（由 scripts/prepare_env.py 从 config.yaml 生成），
-# 未设置时回退到下方默认值。修改参数请编辑 config.yaml 后运行 prepare_env.py。
+# Cassandra 4.1 cluster topology (4 nodes; serial health dependencies guarantee
+# startup order).
+# All tunable parameters come from the .env file at the project root (generated
+# by scripts/prepare_env.py from config.yaml); they fall back to the defaults
+# below when unset. To change parameters, edit config.yaml and run prepare_env.py.
 name: ${CASSANDRA_CLUSTER_NAME:-ktau}
 
 services:

@@ -1,0 +1,155 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}The Kendall Tau Proposal}{2}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Contributions}{2}{subsection.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{4}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Consensus-Based Reconciliation}{4}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Causal Consistency and Vector Clocks}{4}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Timestamp and CRDT Reconciliation}{4}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Rank Aggregation and Order-Fair Consensus}{4}{subsection.2.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Table 1. Comparison of Kendall $\tau $ with existing divergence metrics.}}{5}{table.1}\protected@file@percent }
+\newlabel{tbl:1}{{1}{5}{Table 1. Comparison of Kendall $\tau $ with existing divergence metrics}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Comparison with Existing Divergence Metrics}{5}{subsection.2.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Background}{5}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Diverged Logs and Reconciliation Strategies}{5}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Kendall Tau Distance and Rank Aggregation}{6}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Problem Formulation}{6}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}System Model and Notation}{6}{subsection.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Table 2. Notation used throughout the paper.}}{7}{table.2}\protected@file@percent }
+\newlabel{tbl:2}{{2}{7}{Table 2. Notation used throughout the paper}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}The Quality-Metric Problem}{7}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Kendall $\tau $ as a Reconciliation Quality Metric}{7}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Metric Definition}{8}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Why Kendall Tau?}{8}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Kendall $\tau $ and Causal Disorder}{9}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.1}The Metric Counts Causal Inversions Exactly}{9}{subsubsection.5.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.2}What the Exact Optimum Guarantees}{10}{subsubsection.5.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.3.3}What Approximations Guarantee—and What They Do Not}{10}{subsubsection.5.3.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Table 3. Reconciliation strategies characterized by how they manage pairwise inversions.}}{11}{table.3}\protected@file@percent }
+\newlabel{tbl:3}{{3}{11}{Table 3. Reconciliation strategies characterized by how they manage pairwise inversions}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Design Decisions as Quantitative Trade-offs}{11}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}What Kendall Tau Does Not Measure}{12}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Empirical Evaluation}{12}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Methods and Metrics}{13}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Validation: $\tau $-Optimal Merging Is Practically Achievable}{13}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Experiment 1: Causal Decomposition}{13}{subsection.6.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Fig. 1. Validation that $\tau $-optimal feasible merging is achievable, via its concrete instantiation—the lexicographic (infinite-weight) case of weighted Ranked Pairs (causal edges locked first)—against the causally constrained Kemeny-Young optimum at small conflict-group sizes (N = 10, 24 trials each, partial ballots, no dissemination). (a) Fraction of trials in which the instantiation achieves the exact constrained optimum. (b) Excess total $\tau $ distance above the constrained optimum. The instantiation is exact in 89\% of trials overall, with average excess 0.35\% (maximum 8.0\% in a single M = 5 trial); the constrained and unconstrained optima coincide in 100\% of these trials.}}{14}{figure.1}\protected@file@percent }
+\newlabel{fig:1}{{1}{14}{Fig. 1. Validation that $\tau $-optimal feasible merging is achievable, via its concrete instantiation—the lexicographic (infinite-weight) case of weighted Ranked Pairs (causal edges locked first)—against the causally constrained Kemeny-Young optimum at small conflict-group sizes (N = 10, 24 trials each, partial ballots, no dissemination). (a) Fraction of trials in which the instantiation achieves the exact constrained optimum. (b) Excess total $\tau $ distance above the constrained optimum. The instantiation is exact in 89\% of trials overall, with average excess 0.35\% (maximum 8.0\% in a single M = 5 trial); the constrained and unconstrained optima coincide in 100\% of these trials}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Experiment 2: End-to-End Comparison}{14}{subsection.6.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Fig. 2. Causal decomposition of total $\tau $ distance (Proposition 2) on partial ballots without dissemination. Red: $\tau _{\mathrm  {causal}}$ (causal-constraint violations). Blue: $\tau _{\mathrm  {contested}}$ (genuine ordering disagreement). Dark bars: low conflict (35\% causal density). Light bars: high conflict (10\% causal density). $\tau _{\mathrm  {causal}}$ is identically zero for CF-RP, vector clocks, and pure CRDT at both conflict levels—the constraint holds by construction—while timestamp-based LWW and CRDT+LWW incur 16.2 (high) to 55.3 (low) causal violations per trial on average, which the metric counts exactly; leader overwrite's timestamp-append fallback incurs 2.7–8.3.}}{15}{figure.2}\protected@file@percent }
+\newlabel{fig:2}{{2}{15}{Fig. 2. Causal decomposition of total $\tau $ distance (Proposition 2) on partial ballots without dissemination. Red: $\tau _{\mathrm {causal}}$ (causal-constraint violations). Blue: $\tau _{\mathrm {contested}}$ (genuine ordering disagreement). Dark bars: low conflict (35\% causal density). Light bars: high conflict (10\% causal density). $\tau _{\mathrm {causal}}$ is identically zero for CF-RP, vector clocks, and pure CRDT at both conflict levels—the constraint holds by construction—while timestamp-based LWW and CRDT+LWW incur 16.2 (high) to 55.3 (low) causal violations per trial on average, which the metric counts exactly; leader overwrite's timestamp-append fallback incurs 2.7–8.3}{figure.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Table 4. End-to-end reconciliation quality at high conflict (N = 10, M = 24, 15 trials, partial observation obs = 0.9, no dissemination).}}{16}{table.4}\protected@file@percent }
+\newlabel{tbl:4}{{4}{16}{Table 4. End-to-end reconciliation quality at high conflict (N = 10, M = 24, 15 trials, partial observation obs = 0.9, no dissemination)}{table.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Experiment 3: The CRDT Ceiling and Its Applicability Boundary}{16}{subsection.6.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Fig. 3. End-to-end quality at high conflict under partial ballots (no dissemination). Each design decision materializes as a quantified cost on the four axes: leader overwrite retains 35.0\% of operations; LWW keeps 67.5\% of ordering information and violates 14.4 causal constraints on average; vector clocks automate 59.2\% of resolutions and keep 61.3\%; pure CRDT covers 59.2\%; CRDT+LWW fallback covers everything at LWW quality; CF-RP retains 76.8\% of ordering information with zero causal violations and full automation.}}{17}{figure.3}\protected@file@percent }
+\newlabel{fig:3}{{3}{17}{Fig. 3. End-to-end quality at high conflict under partial ballots (no dissemination). Each design decision materializes as a quantified cost on the four axes: leader overwrite retains 35.0\% of operations; LWW keeps 67.5\% of ordering information and violates 14.4 causal constraints on average; vector clocks automate 59.2\% of resolutions and keep 61.3\%; pure CRDT covers 59.2\%; CRDT+LWW fallback covers everything at LWW quality; CF-RP retains 76.8\% of ordering information with zero causal violations and full automation}{figure.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Fig. 4. Semantic validity versus non-commutative operation fraction (partial ballots, 15 trials per point, no dissemination). Pure CRDT (solid green) maintains near-100\% validity at low non-commutative fractions, but its automatic coverage collapses from 100\% to 5.6\% (dashed green line) as the non-commutative fraction reaches 100\%. CRDT + LWW fallback (dark green dash-dot) keeps 100\% coverage while validity drops to LWW levels. Ranked Pairs (red) holds 100\% coverage with the highest validity among automatic methods at high non-commutative fractions; VC (light blue dotted) trails on both axes.}}{18}{figure.4}\protected@file@percent }
+\newlabel{fig:4}{{4}{18}{Fig. 4. Semantic validity versus non-commutative operation fraction (partial ballots, 15 trials per point, no dissemination). Pure CRDT (solid green) maintains near-100\% validity at low non-commutative fractions, but its automatic coverage collapses from 100\% to 5.6\% (dashed green line) as the non-commutative fraction reaches 100\%. CRDT + LWW fallback (dark green dash-dot) keeps 100\% coverage while validity drops to LWW levels. Ranked Pairs (red) holds 100\% coverage with the highest validity among automatic methods at high non-commutative fractions; VC (light blue dotted) trails on both axes}{figure.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}Experiment 4: Data Preservation Under Partition Asymmetry}{18}{subsection.6.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Fig. 5. As the minority partition grows, leader-based overwrite retains fewer operations (90\% $\rightarrow $ 51\%). Full-retention strategies (LWW, CF-RP) stay flat on ordering information retention, with CF-RP consistently 8–10 percentage points above LWW.}}{19}{figure.5}\protected@file@percent }
+\newlabel{fig:5}{{5}{19}{Fig. 5. As the minority partition grows, leader-based overwrite retains fewer operations (90\% $\rightarrow $ 51\%). Full-retention strategies (LWW, CF-RP) stay flat on ordering information retention, with CF-RP consistently 8–10 percentage points above LWW}{figure.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}Computational Cost}{19}{subsection.6.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.8}Summary}{19}{subsection.6.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Fig. 6. Reconciliation time versus conflict-group size (log scale) on partial ballots. CF-RP is sub-millisecond for typical groups (M $\leq $ 20), 1.35 ms at M = 30, 4.4 ms at M = 50, and $\approx 21$ ms at M = 100—an extreme case; causal pre-locking adds no measurable overhead over plain Ranked Pairs. LWW and VC detection are cheaper but produce the quality losses measured above.}}{20}{figure.6}\protected@file@percent }
+\newlabel{fig:6}{{6}{20}{Fig. 6. Reconciliation time versus conflict-group size (log scale) on partial ballots. CF-RP is sub-millisecond for typical groups (M $\leq $ 20), 1.35 ms at M = 30, 4.4 ms at M = 50, and $\approx 21$ ms at M = 100—an extreme case; causal pre-locking adds no measurable overhead over plain Ranked Pairs. LWW and VC detection are cheaper but produce the quality losses measured above}{figure.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.9}Statistical Reliability}{20}{subsection.6.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Validation on Real Traces}{21}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}The Monitoring System and Scenarios}{21}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Monitor design. The monitoring system runs as a coordinator-side process that samples the per-replica logs at a fixed period (1 s in our deployment) and maintains a sliding window over the most recent operations of each replica. For each window it computes the merged $\hat  {\tau }$ of §5.1 with effective normalization—$Z_{\mathrm  {eff}}$ accounts for live windows that do not yet contain all operations, so the measure stays calibrated under partial observation—and compares it against two standard signals: the maximum replica lag (a binary, set-level indicator) and the operation-set Jaccard index (a similarity indicator). An alert fires when windowed $\hat  {\tau }$ crosses a threshold that no benign steady-state fluctuation reaches. The design is deliberately light: no coordination, no propagation, and no instrumentation beyond reading the logs; per-window cost is $O(M^{2}$ log M) in the window size, negligible at production sampling rates.}{21}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Results: Monitoring and Merge Validation}{21}{subsection.7.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Table 6. Fault-injection evaluation (E7) on the Cassandra cluster: detection latency and faulty-replica localization. —” = never detected; localization reports the fraction of fault-window samples in which the faulty replica ranks first (per-replica $\hat {\tau };$ Jaccard/repair = set-mismatch signal). Means over 3 trials.}}{22}{table.5}\protected@file@percent }
+\newlabel{tbl:5}{{5}{22}{Table 6. Fault-injection evaluation (E7) on the Cassandra cluster: detection latency and faulty-replica localization. —” = never detected; localization reports the fraction of fault-window samples in which the faulty replica ranks first (per-replica $\protect \hat {\tau };$ Jaccard/repair = set-mismatch signal). Means over 3 trials}{table.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Fig. 7. Fault-injection monitoring on the Cassandra cluster (E7). (a) Byzantine reorder: $\hat {\tau }$ rises and the faulty replica's per-node $\hat {\tau }$ dominates while lag $\equiv $ 0 and Jaccard $\equiv $ 1.0. (b) Steady-state missing writes: $\hat {\tau }$ $\equiv $ 0 while Jaccard falls—set-level faults are invisible to $\tau $ and caught by the Jaccard/repair signals. Shaded region: fault window.}}{23}{figure.7}\protected@file@percent }
+\newlabel{fig:7}{{7}{23}{Fig. 7. Fault-injection monitoring on the Cassandra cluster (E7). (a) Byzantine reorder: $\protect \hat {\tau }$ rises and the faulty replica's per-node $\protect \hat {\tau }$ dominates while lag $\equiv $ 0 and Jaccard $\equiv $ 1.0. (b) Steady-state missing writes: $\protect \hat {\tau }$ $\equiv $ 0 while Jaccard falls—set-level faults are invisible to $\tau $ and caught by the Jaccard/repair signals. Shaded region: fault window}{figure.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Table 5. Live monitoring (E4): detection of ordering drift invisible to binary lag and operation-set similarity.}}{23}{table.6}\protected@file@percent }
+\newlabel{tbl:6}{{6}{23}{Table 5. Live monitoring (E4): detection of ordering drift invisible to binary lag and operation-set similarity}{table.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Comparison with the Theoretical Model}{23}{subsection.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Practical Feasibility}{23}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Reconciliation Pipeline}{23}{subsection.8.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Table 7. Recovery-time breakdown for a large conflict group (M = 50, N = 10). Ranking time is measured (Fig. 6); the remaining phases are estimated for a typical in-memory state machine.}}{24}{table.7}\protected@file@percent }
+\newlabel{tbl:7}{{7}{24}{Table 7. Recovery-time breakdown for a large conflict group (M = 50, N = 10). Ranking time is measured (Fig. 6); the remaining phases are estimated for a typical in-memory state machine}{table.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Recovery Cost}{24}{subsection.8.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Discussion}{24}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}Threats to Validity}{24}{subsection.9.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}Why Not Just Use Causal Validity?}{24}{subsection.9.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}Relation to Rank Aggregation}{24}{subsection.9.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}Future Work}{25}{subsection.9.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.1}Weighted Kendall $\tau :$ Accounting for Operation Importance}{25}{subsubsection.9.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Conclusion}{26}{section.10}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Table A1. CF-RP vs. the causally constrained Kemeny-Young optimum on trace-driven scenarios (N = 8, 24 trials per size): CF-RP is exact in 100\% of trials at every size, with zero excess and zero violations of any causal constraint; unconstrained Ranked Pairs over the same partial ballots violates causal edges in 37.5\% of trials.}}{27}{table.8}\protected@file@percent }
+\newlabel{tbl:8}{{8}{27}{Table A1. CF-RP vs. the causally constrained Kemeny-Young optimum on trace-driven scenarios (N = 8, 24 trials per size): CF-RP is exact in 100\% of trials at every size, with zero excess and zero violations of any causal constraint; unconstrained Ranked Pairs over the same partial ballots violates causal edges in 37.5\% of trials}{table.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {.1}A.1 Platform and Implementation}{27}{subsection.Alph0.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {.2}A.2 Scenario Generation and Fairness Protocol}{27}{subsection.Alph0.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {.3}A.3 Raw Results}{27}{subsection.Alph0.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {.4}A.4 Reproducibility}{27}{subsection.Alph0.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Table A2. End-to-end quality on trace scenarios (E2, high conflict, N = 8, M = 24, 30-trial means, partial ballots, no dissemination). Ops ret. = operations retained; Info ret. = 1 $-$ $\hat {\tau }.$ CF-RP recovers the exact consensus order (100.0\%); LWW, CRDT, and CRDT+LWW follow at 99.0\% (p = 0.008 vs. CF-RP); vector clocks defer contested decisions to random tie-breaking and fall significantly behind (68.4\%, p < 0.001).}}{28}{table.9}\protected@file@percent }
+\newlabel{tbl:9}{{9}{28}{Table A2. End-to-end quality on trace scenarios (E2, high conflict, N = 8, M = 24, 30-trial means, partial ballots, no dissemination). Ops ret. = operations retained; Info ret. = 1 $-$ $\protect \hat {\tau }.$ CF-RP recovers the exact consensus order (100.0\%); LWW, CRDT, and CRDT+LWW follow at 99.0\% (p = 0.008 vs. CF-RP); vector clocks defer contested decisions to random tie-breaking and fall significantly behind (68.4\%, p < 0.001)}{table.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Table A3. Partition asymmetry (E6a) with partial ballots: operations retained and ordering information retained as the minority partition grows from 10\% to 50\%.}}{28}{table.10}\protected@file@percent }
+\newlabel{tbl:10}{{10}{28}{Table A3. Partition asymmetry (E6a) with partial ballots: operations retained and ordering information retained as the minority partition grows from 10\% to 50\%}{table.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {.5}A.5 Statistical Details}{28}{subsection.Alph0.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Table A4. Computational cost on the trace platform with partial ballots (p50 over trials) and cluster resource utilization (docker stats sampling mean).}}{29}{table.11}\protected@file@percent }
+\newlabel{tbl:11}{{11}{29}{Table A4. Computational cost on the trace platform with partial ballots (p50 over trials) and cluster resource utilization (docker stats sampling mean)}{table.11}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Figure 8.}}{29}{figure.8}\protected@file@percent }
+\newlabel{fig:8}{{8}{29}{Figure 8}{figure.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {.6}B.1 Effective Normalization}{29}{subsection.Alph0.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {.7}B.2 Proof of Proposition 1}{29}{subsection.Alph0.7}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Table A5. Synthetic E2 (N = 10, M = 24, n = 15, partial ballots obs = 0.9, no dissemination): ordering-information retention (1 $-$ $\hat {\tau })$ by strategy—mean ± std, 95\% CI, and two-sided Wilcoxon p versus CF-RP.}}{30}{table.12}\protected@file@percent }
+\newlabel{tbl:12}{{12}{30}{Table A5. Synthetic E2 (N = 10, M = 24, n = 15, partial ballots obs = 0.9, no dissemination): ordering-information retention (1 $-$ $\protect \hat {\tau })$ by strategy—mean ± std, 95\% CI, and two-sided Wilcoxon p versus CF-RP}{table.12}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Table A6. Trace E2 (N = 8, M = 24, n = 30, partial ballots, no dissemination): ordering-information retention by strategy—mean ± std, 95\% CI, and two-sided Wilcoxon p versus CF-RP.}}{30}{table.13}\protected@file@percent }
+\newlabel{tbl:13}{{13}{30}{Table A6. Trace E2 (N = 8, M = 24, n = 30, partial ballots, no dissemination): ordering-information retention by strategy—mean ± std, 95\% CI, and two-sided Wilcoxon p versus CF-RP}{table.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {.8}B.3 Proof of Proposition 2}{30}{subsection.Alph0.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {.9}B.4 Proof of Proposition 3 and the Partial-Observation Boundary}{30}{subsection.Alph0.9}\protected@file@percent }
+\bibcite{1}{1}
+\bibcite{2}{2}
+\bibcite{3}{3}
+\bibcite{4}{4}
+\bibcite{5}{5}
+\bibcite{6}{6}
+\bibcite{7}{7}
+\bibcite{8}{8}
+\bibcite{9}{9}
+\bibcite{10}{10}
+\bibcite{11}{11}
+\@writefile{toc}{\contentsline {subsection}{\numberline {.10}B.5 Proof of Proposition 4}{31}{subsection.Alph0.10}\protected@file@percent }
+\bibcite{12}{12}
+\bibcite{13}{13}
+\bibcite{14}{14}
+\bibcite{15}{15}
+\bibcite{16}{16}
+\bibcite{17}{17}
+\bibcite{18}{18}
+\bibcite{19}{19}
+\bibcite{20}{20}
+\bibcite{21}{21}
+\bibcite{22}{22}
+\bibcite{23}{23}
+\bibcite{24}{24}
+\bibcite{25}{25}
+\bibcite{26}{26}
+\bibcite{27}{27}
+\bibcite{28}{28}
+\bibcite{29}{29}
+\bibcite{30}{30}
+\bibcite{31}{31}
+\bibcite{32}{32}
+\bibcite{33}{33}
+\bibcite{34}{34}
+\bibcite{35}{35}
+\bibcite{36}{36}
+\bibcite{37}{37}
+\bibcite{38}{38}
+\bibcite{39}{39}
+\bibcite{40}{40}
+\bibcite{41}{41}
+\bibcite{42}{42}
+\bibcite{43}{43}
+\bibcite{44}{44}
+\bibcite{45}{45}
+\bibcite{46}{46}
+\bibcite{47}{47}
+\bibcite{48}{48}
+\bibcite{49}{49}
+\gdef \@abspage@last{34}

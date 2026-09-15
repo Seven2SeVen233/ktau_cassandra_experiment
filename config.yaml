@@ -1,30 +1,31 @@
 # ============================================================
-# Kendall-Tau Log Reconciliation 实验统一配置（单一配置源）
-# 修改 docker 段后，运行: python scripts/prepare_env.py
-# 将参数同步到 .env（docker compose 自动读取）。
+# Unified configuration for the Kendall-Tau Log Reconciliation
+# experiments (single source of truth).
+# After editing the docker section, run: python scripts/prepare_env.py
+# to sync the parameters into .env (read automatically by docker compose).
 # ============================================================
 
-# ---- Docker / Cassandra 集群部署 ----
+# ---- Docker / Cassandra cluster deployment ----
 docker:
-  image: cassandra:4.1              # 镜像名:标签
-  cluster_name: ktau                # 集群名（也是 compose 项目名）
+  image: cassandra:4.1              # image name:tag
+  cluster_name: ktau                # cluster name (also the compose project name)
   dc: dc1                           # Cassandra data center
   rack: rack1                       # Cassandra rack
-  network: ktau-net                 # compose 网络名（定义于 docker-compose.yml，勿改）
-  container_prefix: ktau-cass       # 容器名前缀，节点 i -> {prefix}-{i}
-  client_port: 9042                 # 宿主机映射端口 -> 容器 9042
-  heap_size: 1G                     # JVM MAX_HEAP_SIZE（每节点）
-  heap_newsize: 256M                # JVM HEAP_NEWSIZE（每节点）
-  cpu_limit: "2.0"                  # 每节点 CPU 上限（cpus）
-  mem_limit: 3G                     # 每节点内存上限
+  network: ktau-net                 # compose network name (defined in docker-compose.yml; do not change)
+  container_prefix: ktau-cass       # container name prefix, node i -> {prefix}-{i}
+  client_port: 9042                 # host-mapped port -> container 9042
+  heap_size: 1G                     # JVM MAX_HEAP_SIZE (per node)
+  heap_newsize: 256M                # JVM HEAP_NEWSIZE (per node)
+  cpu_limit: "2.0"                  # per-node CPU limit (cpus)
+  mem_limit: 3G                     # per-node memory limit
 
-# ---- Cassandra 集群规模与连接 ----
+# ---- Cassandra cluster size and connection ----
 cluster:
-  contact_points: ["127.0.0.1"]     # 客户端连接地址（cass-1 映射端口）
+  contact_points: ["127.0.0.1"]     # client connection address (cass-1 mapped port)
   port: 9042
-  keyspace: ktau                    # 实验 keyspace
+  keyspace: ktau                    # experiment keyspace
   rf: 2                             # replication_factor
-  n_nodes: 4                        # 集群节点数（docker-compose 拓扑按此设计）
+  n_nodes: 4                        # number of cluster nodes (docker-compose topology is designed around this)
 
 data:
   dataset: BGL
@@ -33,23 +34,23 @@ data:
   seed: 42
 
 model:
-  N: 8                # 逻辑副本数
-  M: 24               # 每个 trial 的发散操作数
-  trials: 30          # 每配置试验次数
-  seed: 42            # 随机种子
-  obs: 0.9            # 副本观测比例
-  noise: 0.05         # 并发对相邻对换噪声概率
-  skew_us: 500        # 每副本时钟偏移上限(微秒)
+  N: 8                # number of logical replicas
+  M: 24               # divergent operations per trial
+  trials: 30          # trials per configuration
+  seed: 42            # random seed
+  obs: 0.9            # replica observation ratio
+  noise: 0.05         # adjacent-swap noise probability for concurrent pairs
+  skew_us: 500        # per-replica clock-skew bound (microseconds)
 
 monitor:
   interval_s: 1.0
   threshold: 0.05
-  window_ops: 20        # 监控窗口（最近操作数）
-  write_rate: 100       # 监控流写入速率 ops/s
-  steady_ops: 120       # 稳态操作数
-  drift_ops: 120        # 排序漂移步数（重排窗口，不新增操作）
-  converge_ops: 40      # 收敛步数（冲刷窗口分歧）
-  partition_ops: 120    # 集合发散步数（A/B 组分别接收）
-  heal_ops: 60          # 愈合步数
+  window_ops: 20        # monitoring window (most recent operations)
+  write_rate: 100       # monitor-stream write rate ops/s
+  steady_ops: 120       # steady-state operations
+  drift_ops: 120        # ordering-drift steps (reshuffle windows, no new ops)
+  converge_ops: 40      # convergence steps (flush window divergence)
+  partition_ops: 120    # set-divergence steps (groups A/B receive separately)
+  heal_ops: 60          # healing steps
 
 results_dir: results

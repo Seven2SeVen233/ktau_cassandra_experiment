@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿# -*- coding: utf-8 -*-
 """生成附录 Fig. A1：E4 实时监控五阶段轨迹图（τ̂ 与 Jaccard）。"""
 import csv
 import os
@@ -6,6 +6,9 @@ import os
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams["mathtext.fontset"] = "stix"
 
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "fig_e4_trajectory.png")

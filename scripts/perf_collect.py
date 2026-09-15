@@ -1,7 +1,8 @@
-"""Phase 4: 性能/资源采集（宿主机侧）。
+"""Phase 4: performance/resource collection (host side).
 
-- docker stats 每 2s 采样 ktau 集群节点 CPU%/内存/网络 IO → results/perf_host.csv + ktau.perf_samples
-- 客户端 CQL 往返延迟 p50/p95/p99（连接 cass-1 的 9042）
+- docker stats samples CPU%/memory/network IO of the ktau cluster nodes every 2s
+  → results/perf_host.csv + ktau.perf_samples
+- client CQL round-trip latency p50/p95/p99 (connecting to cass-1:9042)
 """
 import csv
 import os
@@ -19,7 +20,7 @@ NODES = ["ktau-cass-1", "ktau-cass-2", "ktau-cass-3", "ktau-cass-4"]
 
 
 def _parse_bytes(s):
-    """将 docker stats 的字节串（如 1.2MB / 500kB / 100B）归一化为 MB。"""
+    """Normalize a docker stats byte string (e.g. 1.2MB / 500kB / 100B) to MB."""
     s = s.strip()
     try:
         if "GiB" in s:
@@ -38,7 +39,7 @@ def _parse_bytes(s):
 
 
 def docker_stats_row():
-    """一次 docker stats 采样 → {node: (cpu%, mem_mb, net_rx_mb, net_tx_mb)}"""
+    """One docker stats sample → {node: (cpu%, mem_mb, net_rx_mb, net_tx_mb)}"""
     out = subprocess.run(
         ["docker", "stats", "--no-stream", "--format",
          "{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}|{{.NetIO}}"],
@@ -62,7 +63,7 @@ def docker_stats_row():
 
 
 def cql_rtt(cfg, n=100):
-    """客户端 → cass-1 的 CQL 往返延迟(ms)。"""
+    """Client → cass-1 CQL round-trip latency (ms)."""
     cluster, session = common.get_session(cfg)
     try:
         lat = []

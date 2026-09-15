@@ -1,33 +1,20 @@
-"""分析论文 docx 结构：段落统计、字数估算、表格与图片数量。"""
+"""检查 docx 表格内容与全文引用编号。"""
 import sys
-from docx import Document
+import docx
 
-path = sys.argv[1]
-doc = Document(path)
+path = r"C:\Users\34333\OneDrive\Desktop\Kendall-tau\Kendall_Tau_Log_Reconciliation_ICSDC_prepare.docx"
+d = docx.Document(path)
 
-paras = doc.paragraphs
-n_words = 0
-heading1 = []
-n_tables = len(doc.tables)
-n_inline_shapes = len(doc.inline_shapes)
+print("=== 引用编号出现位置 ===")
+import re
+for i, p in enumerate(d.paragraphs):
+    t = p.text
+    for m in re.finditer(r"\[(\d{1,2})\]", t):
+        print(f"para[{i}] [{m.group(1)}]  ...{t[max(0,m.start()-40):m.end()+40]}...")
 
-for p in paras:
-    style = p.style.name if p.style else "?"
-    txt = p.text.strip()
-    if not txt:
-        continue
-    n_words += len(txt.split())
-    if style == "Heading 1":
-        heading1.append(txt)
-
-# 每个表格行数
-print(f"== {path}")
-print(f"paragraphs: {len(paras)}, words(total, incl. tables): {n_words}")
-print(f"tables: {n_tables}, inline_shapes: {n_inline_shapes}")
-print(f"Heading 1: {heading1}")
-for i, t in enumerate(doc.tables):
-    rows = len(t.rows)
-    cols = len(t.columns)
-    # 首个单元格文字
-    first = " | ".join(c.text.strip().replace("\n", " ")[:40] for c in t.rows[0].cells)
-    print(f"  table{i}: {rows}x{cols} header='{first}'")
+print("\n=== 全部表格内容 ===")
+for ti, tb in enumerate(d.tables):
+    print(f"\n--- Table {ti}: {len(tb.rows)}x{len(tb.columns)} ---")
+    for ri, row in enumerate(tb.rows):
+        cells = [c.text.strip()[:22] for c in row.cells]
+        print(f"  r{ri}: {cells}")

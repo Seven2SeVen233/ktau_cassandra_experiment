@@ -1,4 +1,5 @@
-"""核心模块冒烟测试：τ、Ranked Pairs、Kemeny、场景生成、基线、指标。"""
+"""Smoke tests for the core modules: τ, Ranked Pairs, Kemeny, scenario generation,
+baselines, metrics."""
 import os
 import sys
 
@@ -45,15 +46,15 @@ def test_scenario():
     assert len(tm.ops) > 1000, len(tm.ops)
     sc = sample_conflict_group(tm, 42, 24, "high")
     assert len(sc.D) == 24
-    # 各副本日志为 D 的子集
+    # each replica log is a subset of D
     union = set().union(*sc.replica_logs)
     assert union <= sc.D
-    # 一致因果约束被所有包含副本遵守
+    # consistent causal constraints are respected by every containing replica
     for a, b in sc.causal_pairs:
         for rl in sc.replica_logs:
             if a in rl and b in rl:
                 assert rl.index(a) < rl.index(b), (a, b)
-    # τ̂ 值域
+    # τ̂ range
     sigma = ranked_pairs(sc.replica_logs, sc.D)
     total = sum(tau(sigma, rl) for rl in sc.replica_logs)
     th = tauhat(total, 8, 24)

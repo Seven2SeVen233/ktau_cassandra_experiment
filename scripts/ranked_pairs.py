@@ -1,19 +1,24 @@
-"""Ranked Pairs（Tideman）算法：Condorcet 一致的多项式时间近 τ 最优合并（§6.2）。
+"""Ranked Pairs (Tideman) algorithm: a Condorcet-consistent polynomial-time
+near-τ-optimal merge (§6.2).
 
-1. 计算 pairwise margin；
-2. 按 margin 降序锁定边，成环则跳过；
-3. 零 margin / 未决对按确定序补全；
-4. 拓扑排序得到总序。
+1. Compute pairwise margins;
+2. Lock edges in descending margin order, skipping edges that create cycles;
+3. Zero-margin / undecided pairs are completed in a deterministic order;
+4. Topological sort yields the total order.
 
-实现：用 bitset 增量维护锁定图的传递闭包（reach[i] 的第 j 位表示 i 可达 j），
-成环判定 O(1)，闭包更新 O(n) 位运算。与逐边 has_cycle 版本语义完全一致。
+Implementation: incrementally maintain the transitive closure of the locked graph
+with bitsets (bit j of reach[i] indicates i reaches j), giving O(1) cycle
+detection and O(n) bitwise closure updates. Semantically identical to the
+per-edge has_cycle version.
 """
 from tau import pairwise_margins
 
 
 def _lock(reach, locked, locked_set, i, j, n):
-    """锁边 (i,j)：若 j 可达 i 则成环跳过；否则锁边并增量更新闭包。返回是否锁定。"""
-    if (reach[j] >> i) & 1:  # j 可达 i → 加边 (i,j) 成环
+    """Lock edge (i,j): if j reaches i, the edge would create a cycle and is
+    skipped; otherwise lock and update the closure incrementally. Returns whether
+    the edge was locked."""
+    if (reach[j] >> i) & 1:  # j reaches i → adding (i,j) creates a cycle
         return False
     locked.append((i, j))
     locked_set.add((i, j))
@@ -26,7 +31,8 @@ def _lock(reach, locked, locked_set, i, j, n):
 
 
 def ranked_pairs(replica_logs, op_set):
-    """返回合并总序（op_id 列表）。op_set: 冲突组内操作集合。"""
+    """Return the merged total order (op_id list). op_set: operations in the
+    conflict group."""
     margins = pairwise_margins(replica_logs, op_set)
     ops = list(op_set)
     n = len(ops)
@@ -37,13 +43,13 @@ def ranked_pairs(replica_logs, op_set):
     locked_set = set()
     reach = [0] * n
 
-    # 1) 严格正 margin，按 margin 降序
+    # 1) strictly positive margins, descending
     for (a, b), m in edges:
         if m <= 0:
             continue
         _lock(reach, locked, locked_set, idx[a], idx[b], n)
 
-    # 2) 零 margin / 未决对：按 op 索引序补全，避免成环
+    # 2) zero-margin / undecided pairs: completed in op-index order to avoid cycles
     for i in range(n):
         for j in range(n):
             if i == j:
@@ -55,7 +61,8 @@ def ranked_pairs(replica_logs, op_set):
                 continue
             _lock(reach, locked, locked_set, i, j, n)
 
-    # 3) 拓扑排序（确定性：与逐边 has_cycle 版本一致的出队顺序）
+    # 3) Topological sort (deterministic: same dequeue order as the per-edge
+    #    has_cycle version)
     from collections import deque
 
     adj = [[] for _ in range(n)]
@@ -72,5 +79,74 @@ def ranked_pairs(replica_logs, op_set):
             indeg[v] -= 1
             if indeg[v] == 0:
                 q.append(v)
-    assert len(res) == n, f"RP 未覆盖全部操作 {len(res)}/{n}"
+    assert len(res) == n, f"RP did not cover all operations {len(res)}/{n}"
+    return res
+
+
+def ranked_pairs_causal(replica_logs, op_set, causal_edges):
+    """Causally constrained Ranked Pairs (CF-RP, §6.2 revised model): lock all
+    causal edges first, then lock the remaining edges in descending margin order
+    (skipping cycles), and finally perform a deterministic topological sort.
+
+    Properties (independent of the dissemination premise, hold unconditionally):
+    - the output is always a linear extension of the causal DAG
+      (τ_causal = 0 by construction);
+    - equivalent to "plain RP + post-hoc causal repair": causal edges are treated
+      as locked items with margin = +∞, contested pairs are still aggregated by
+      majority evidence, and computation is purely local with no communication
+      phase.
+    """
+    margins = pairwise_margins(replica_logs, op_set)
+    ops = list(op_set)
+    n = len(ops)
+    idx = {op: i for i, op in enumerate(ops)}
+
+    locked = []
+    locked_set = set()
+    reach = [0] * n
+
+    # 0) Pre-lock causal edges (margin = +∞): a cycle here means inconsistent
+    #    input (should not happen)
+    for a, b in causal_edges:
+        if a in idx and b in idx:
+            ok = _lock(reach, locked, locked_set, idx[a], idx[b], n)
+            assert ok, f"causal edge creates a cycle: inconsistent causal metadata {(a, b)}"
+
+    # 1) strictly positive margins, descending
+    edges = sorted(margins.items(), key=lambda kv: kv[1], reverse=True)
+    for (a, b), m in edges:
+        if m <= 0:
+            continue
+        _lock(reach, locked, locked_set, idx[a], idx[b], n)
+
+    # 2) zero-margin / undecided pairs completed in index order
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            if (i, j) in locked_set or (j, i) in locked_set:
+                continue
+            m = margins.get((ops[i], ops[j]), margins.get((ops[j], ops[i]), 0))
+            if m < 0:
+                continue
+            _lock(reach, locked, locked_set, i, j, n)
+
+    # 3) Topological sort (deterministic)
+    from collections import deque
+
+    adj = [[] for _ in range(n)]
+    indeg = [0] * n
+    for u, v in locked:
+        adj[u].append(v)
+        indeg[v] += 1
+    q = deque([i for i in range(n) if indeg[i] == 0])
+    res = []
+    while q:
+        u = q.popleft()
+        res.append(ops[u])
+        for v in adj[u]:
+            indeg[v] -= 1
+            if indeg[v] == 0:
+                q.append(v)
+    assert len(res) == n, f"CF-RP did not cover all operations {len(res)}/{n}"
     return res

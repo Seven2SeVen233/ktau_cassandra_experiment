@@ -1,10 +1,11 @@
-"""Phase 1: Loghub trace 自动化拉取（多源回退 + 格式校验）。
+"""Phase 1: automated Loghub trace download (multi-source fallback + format
+validation).
 
-已验证源（本机网络可达）：
-  1. gitcode 镜像（raw.gitcode.com，真实下载地址）
-  2. gitcode /raw/ 端点（部分资源）
-  3. 官方 GitHub raw / Zenodo（视网络可达性）
-文件已存在且格式合法则跳过。
+Verified sources (reachable from this host):
+  1. gitcode mirror (raw.gitcode.com, real download URLs)
+  2. gitcode /raw/ endpoint (some resources)
+  3. official GitHub raw / Zenodo (depending on network reachability)
+If the file already exists and is well-formed, downloading is skipped.
 """
 import os
 import sys
@@ -44,19 +45,19 @@ def fetch(dataset="BGL", dest_dir="data", force=False):
     os.makedirs(dest_dir, exist_ok=True)
     dest = os.path.join(dest_dir, f"{dataset}_2k.log")
     if os.path.exists(dest) and validate_format(dest) and not force:
-        log.info("%s 已存在且格式合法，跳过下载", dest)
+        log.info("%s exists and is well-formed; skipping download", dest)
         return dest
     for url in SOURCES[dataset]:
         try:
-            log.info("尝试下载 %s -> %s", url, dest)
+            log.info("attempting download %s -> %s", url, dest)
             urllib.request.urlretrieve(url, dest)
             if validate_format(dest):
-                log.info("下载成功并校验通过: %s", dest)
+                log.info("download succeeded and validated: %s", dest)
                 return dest
-            log.warning("下载内容格式非法: %s", url)
+            log.warning("downloaded content has invalid format: %s", url)
         except Exception as e:
-            log.warning("下载失败 %s: %s", url, e)
-    raise RuntimeError(f"全部数据源不可达: {dataset}")
+            log.warning("download failed %s: %s", url, e)
+    raise RuntimeError(f"all data sources unreachable: {dataset}")
 
 
 if __name__ == "__main__":

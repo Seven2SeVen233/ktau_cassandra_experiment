@@ -1,5 +1,5 @@
-"""Phase 1: 将 BGL trace 解析并导入 Cassandra（trace_ops / trace_raw）。
-同时测吞吐（ops/s）。"""
+"""Phase 1: parse the BGL trace and ingest it into Cassandra (trace_ops / trace_raw).
+Also measures throughput (ops/s)."""
 import os
 import sys
 import time
@@ -24,7 +24,7 @@ def main():
         total = sum(len(v) for v in ops_by_node.values())
         log.info("parsed %d ops from %d nodes", total, len(ops_by_node))
 
-        # 清空重跑
+        # Truncate for a clean re-run
         session.execute(f"TRUNCATE {ks}.trace_ops")
 
         insert = session.prepare(

@@ -4,13 +4,16 @@ venv/
 __pycache__/
 *.pyc
 
-# ---- 生成文件（由 scripts/prepare_env.py 生成）----
+# ---- Generated files (created by scripts/prepare_env.py) ----
 .env
 
-# ---- 编辑器 / 系统 ----
+# ---- Editors / OS ----
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
 _thesis_full.txt
+
+# ---- Internal paper-editing tooling (not part of the public experiment code) ----
+devtools/

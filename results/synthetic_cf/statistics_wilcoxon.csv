@@ -1,0 +1,16 @@
+strategy_a,strategy_b,metric,n,W,p,significant,note
+crdt_lww,crdt_pure,info_retention,15,0.0,6.103515625e-05,True,
+crdt_lww,leader,info_retention,15,0.0,6.103515625e-05,True,
+crdt_lww,lww,info_retention,15,0.0,1.0,False,tied
+crdt_lww,ranked_pairs,info_retention,15,0.0,6.103515625e-05,True,
+crdt_lww,vc,info_retention,15,5.0,0.0006103515625,True,
+crdt_pure,leader,info_retention,15,0.0,6.103515625e-05,True,
+crdt_pure,lww,info_retention,15,0.0,6.103515625e-05,True,
+crdt_pure,ranked_pairs,info_retention,15,0.0,6.103515625e-05,True,
+crdt_pure,vc,info_retention,15,0.0,6.103515625e-05,True,
+leader,lww,info_retention,15,0.0,6.103515625e-05,True,
+leader,ranked_pairs,info_retention,15,0.0,6.103515625e-05,True,
+leader,vc,info_retention,15,0.0,6.103515625e-05,True,
+lww,ranked_pairs,info_retention,15,0.0,6.103515625e-05,True,
+lww,vc,info_retention,15,5.0,0.0006103515625,True,
+ranked_pairs,vc,info_retention,15,0.0,6.103515625e-05,True,

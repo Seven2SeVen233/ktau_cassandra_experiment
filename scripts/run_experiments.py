@@ -1,12 +1,15 @@
-"""Phase 3: 实验执行 E1–E6a（核心验证）。
+"""Phase 3: experiment execution E1–E6a (core validation).
 
-E1  因果分解验证（低/高冲突，六策略；含 LWW 大时钟偏移下的 τcausal 检测）
-E1b 论文 §5.3.3 反例复现（一致约束被违反 → τ 精确计数的确定性演示）
-E2  端到端对比（高冲突，全部策略，指标表）
-E3  Ranked Pairs vs 精确 Kemeny（M=4..8）
-E4  τ 实时监控（Cassandra 实时存储驱动：稳态→发散→愈合 + 敏感性扫描）
-E5  性能与扩展性（M=5..100：τ/RP/LWW/VC 耗时 + 合并吞吐）
-E6a 分区不对称（少数派 10%..50%）
+E1  causal decomposition validation (low/high conflict, six strategies; includes
+    τcausal detection under LWW with large clock skew)
+E1b counterexample reproduction from paper §5.3.3 (deterministic demonstration of
+    exact τ counting when consistent constraints are violated)
+E2  end-to-end comparison (high conflict, all strategies, metric table)
+E3  Ranked Pairs vs exact Kemeny (M=4..8)
+E4  real-time τ monitoring (Cassandra live storage: steady → divergence → heal +
+    sensitivity sweep)
+E5  performance and scalability (M=5..100: τ/RP/LWW/VC runtime + merge throughput)
+E6a partition asymmetry (minority 10%..50%)
 """
 import os
 import random
@@ -55,7 +58,7 @@ def run_trial(tm, seed, M, conflict, strategies, cfg, skew_scale=1.0):
 
 
 def run_e1(tm, cfg):
-    log.info("=== E1: 因果分解验证 ===")
+    log.info("=== E1: causal decomposition validation ===")
     strategies = all_strategies()
     rows = []
     for conflict in ("low", "high"):
@@ -76,27 +79,28 @@ def run_e1(tm, cfg):
     df.to_csv(os.path.join(common.RESULTS, "e1_causal_decomp.csv"), index=False)
     summary = df.groupby(["conflict", "strategy"])[
         ["tau_causal", "tau_contested", "tauhat", "info_retention"]].mean().round(4)
-    log.info("E1 汇总:\n%s", summary.to_string())
+    log.info("E1 summary:\n%s", summary.to_string())
     return df
 
 
 def run_e1b(tm):
-    """论文 §5.3.3 反例：一致约束被违反时 τ 精确计数（确定性）。"""
-    log.info("=== E1b: 论文反例复现（τ 检测因果紊乱） ===")
+    """Paper §5.3.3 counterexample: exact τ counting when a consistent constraint
+    is violated (deterministic)."""
+    log.info("=== E1b: paper counterexample reproduction (τ detects causal disorder) ===")
     ops = {0: {"ts": 1.0, "replica": 0, "issuer": 0, "otype": "incr", "key": 0},
            1: {"ts": 2.0, "replica": 0, "issuer": 0, "otype": "incr", "key": 0},
            2: {"ts": 3.0, "replica": 0, "issuer": 0, "otype": "incr", "key": 0},
            3: {"ts": 4.0, "replica": 0, "issuer": 0, "otype": "incr", "key": 0}}
-    # 3 副本，a=0 ≻ b=1 一致（全部包含两者的副本都 a 在 b 前）
+    # 3 replicas, a=0 ≻ b=1 consistent (every replica containing both has a before b)
     replica_logs = [[0, 1, 2, 3], [0, 1, 2, 3], [0, 1, 2, 3]]
     causal_pairs = [(0, 1)]
     n_ab = {(0, 1): 3}
-    bad_order = [1, 2, 3, 0]  # 局部搜索可能产生的坏序：b ≻ z1 ≻ z2 ≻ a
+    bad_order = [1, 2, 3, 0]  # bad order that local search may produce: b ≻ z1 ≻ z2 ≻ a
     from tau import tau_causal_order, tauhat
 
     t_causal = tau_causal_order(bad_order, causal_pairs, n_ab)
     t_total = sum(tau(bad_order, rl) for rl in replica_logs)
-    log.info("反例: τ_causal=%s (期望 3=n_ab), τ_total=%s, τ̂=%s",
+    log.info("counterexample: τ_causal=%s (expected 3=n_ab), τ_total=%s, tauhat=%s",
              t_causal, t_total, round(tauhat(t_total, 3, 4), 4))
     rows = [{"test": "counterexample", "tau_causal": t_causal,
              "tau_total": t_total, "tauhat": tauhat(t_total, 3, 4)}]
@@ -106,7 +110,7 @@ def run_e1b(tm):
 
 
 def run_e2(tm, cfg):
-    log.info("=== E2: 端到端对比（高冲突） ===")
+    log.info("=== E2: end-to-end comparison (high conflict) ===")
     strategies = all_strategies()
     rows = []
     t = cfg["model"]["seed"] * 5000
@@ -128,12 +132,12 @@ def run_e2(tm, cfg):
     summary = df.groupby("strategy")[
         ["ops_retained", "auto_coverage", "info_retention", "tau_causal",
          "semantic_validity", "gini", "time_ms"]].mean().round(4)
-    log.info("E2 汇总:\n%s", summary.to_string())
+    log.info("E2 summary:\n%s", summary.to_string())
     return df
 
 
 def run_e3(tm, cfg):
-    log.info("=== E3: Ranked Pairs vs 精确 Kemeny ===")
+    log.info("=== E3: Ranked Pairs vs exact Kemeny ===")
     rows = []
     for M in (4, 5, 6, 7, 8):
         for t in range(24):
@@ -156,26 +160,26 @@ def run_e3(tm, cfg):
         avg_excess_pct=("excess_pct", "mean"),
         max_excess_pct=("excess_pct", "max"),
         kemeny_ms=("kemeny_ms", "mean")).round(4)
-    log.info("E3 汇总:\n%s", summary.to_string())
+    log.info("E3 summary:\n%s", summary.to_string())
     return df
 
 
 def run_e5(tm, cfg):
-    log.info("=== E5: 性能与扩展性 ===")
+    log.info("=== E5: performance and scalability ===")
     rows = []
     N = cfg["model"]["N"]
     for M in (5, 8, 10, 15, 20, 30, 50, 100):
         for t in range(12):
             sc = ensure_scenario(tm, 9000 + M * 10 + t, M, "high", cfg)
-            # τ_total 耗时
+            # τ_total runtime
             t0 = time.perf_counter()
             total = sum(tau(merge_ranked_pairs(sc, seed=t)[0], rl) for rl in sc.replica_logs)
             tau_ms = (time.perf_counter() - t0) * 1000
-            # RP 耗时
+            # RP runtime
             t0 = time.perf_counter()
             sigma = ranked_pairs(sc.replica_logs, sc.D)
             rp_ms = (time.perf_counter() - t0) * 1000
-            # LWW 耗时
+            # LWW runtime
             from baselines import merge_lww
             t0 = time.perf_counter()
             merge_lww(sc, seed=t)
@@ -192,12 +196,12 @@ def run_e5(tm, cfg):
     df.to_csv(os.path.join(common.RESULTS, "e5_perf.csv"), index=False)
     summary = df.groupby("M")[
         ["tau_total_ms", "rp_ms", "lww_ms", "vc_ms", "merge_thr_ops_s"]].quantile(0.5).round(4)
-    log.info("E5 汇总(p50):\n%s", summary.to_string())
+    log.info("E5 summary(p50):\n%s", summary.to_string())
     return df
 
 
 def run_e6a(tm, cfg):
-    log.info("=== E6a: 分区不对称 ===")
+    log.info("=== E6a: partition asymmetry ===")
     rows = []
     N = cfg["model"]["N"]
     t = cfg["model"]["seed"] * 9000
@@ -206,7 +210,7 @@ def run_e6a(tm, cfg):
         for _ in range(15):
             t += 1
             sc = ensure_scenario(tm, t, cfg["model"]["M"], "high", cfg)
-            # 覆盖 partitions：多数派 = N - minority_n
+            # Override partitions: majority = N - minority_n
             reps = list(range(N))
             random.Random(t).shuffle(reps)
             sc.partitions = [reps[:N - minority_n], reps[N - minority_n:]]
@@ -225,7 +229,7 @@ def run_e6a(tm, cfg):
     df.to_csv(os.path.join(common.RESULTS, "e6a_asymmetry.csv"), index=False)
     summary = df.groupby(["minority_frac", "strategy"])[
         ["ops_retained", "info_retention"]].mean().round(4)
-    log.info("E6a 汇总:\n%s", summary.to_string())
+    log.info("E6a summary:\n%s", summary.to_string())
     return df
 
 
@@ -242,7 +246,7 @@ def main():
     run_e3(tm, cfg)
     run_e5(tm, cfg)
     run_e6a(tm, cfg)
-    log.info("核心实验完成，结果已写入 %s", common.RESULTS)
+    log.info("core experiments done; results written to %s", common.RESULTS)
 
 
 if __name__ == "__main__":

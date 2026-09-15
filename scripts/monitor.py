@@ -1,16 +1,18 @@
-"""Phase 3-E4: τ 实时监控（Cassandra 实时存储驱动）。
+"""Phase 3-E4: Real-time τ monitoring (Cassandra-backed live storage).
 
-设计（对齐论文 §8.4 未来方向，经离线轨迹模拟验证）：
-- 稳态：所有副本按 ts 序收到全部操作 → τ̂≈0，binary lag=0
-- 排序漂移：副本对同一操作集（集合一致 → maxlag=0）独立重排窗口
-  （随机块置换，概率随 k 线性上升）→ τ̂ 单调上升而 binary lag 仍为 0
-  → 验证 τ 的亚阈值/早期检测能力（论文 §5.1、§8.4）
-- 收敛：全量规范投递，冲刷窗口分歧 → τ̂ 回落
-- 集合发散：操作只投递到 A/B 两组副本 → Jaccard 下降、τ̂ 保持≈0
-  → 验证 τ 与 Jaccard 互补（论文 §5.5、§8.4）
-- 愈合：恢复全量投递 → τ̂≈0、Jaccard 回升
+Design (aligned with paper §8.4 future directions, validated on offline trace simulation):
+- Steady state: all replicas receive every operation in ts order → τ̂≈0, binary lag=0
+- Ordering drift: replicas independently reshuffle windows over the same operation set
+  (set-convergent → maxlag=0), with probability rising linearly in k
+  → τ̂ rises monotonically while binary lag stays 0
+  → validates τ's sub-threshold / early detection capability (paper §5.1, §8.4)
+- Convergence: full canonical delivery flushes window divergence → τ̂ falls back
+- Set divergence: operations delivered only to replica groups A/B → Jaccard drops,
+  τ̂ stays ≈0 → validates complementarity of τ and Jaccard (paper §5.5, §8.4)
+- Healing: full delivery resumes → τ̂≈0, Jaccard recovers
 
-指标：τ̂ 轨迹、检测延迟、稳态误报率、峰值 τ̂、Jaccard、maxlag。
+Metrics: τ̂ trajectory, detection latency, steady-state false alarms, peak τ̂,
+Jaccard, maxlag.
 """
 import os
 import random
@@ -26,9 +28,9 @@ import common
 from common import log
 from ranked_pairs import ranked_pairs
 from scenario_gen import TraceModel, parse_bgl_file
-from tau import tau, tauhat, gini
+from tau import gini, tau, tauhat_effective
 
-# 各阶段步数 / 窗口 / 速率默认值（config.yaml 的 monitor 段可覆盖）
+# Defaults for per-phase steps / window / write rate (overridable via the monitor section of config.yaml)
 DEF = dict(window_ops=20, write_rate=100, steady_ops=120, drift_ops=120,
            converge_ops=40, partition_ops=120, heal_ops=60)
 
@@ -61,7 +63,7 @@ class LiveMonitor:
             f"ops_total, alert, phase) VALUES (?,?,?,?,?,?,?,?)")
         self.stop = threading.Event()
         self.samples = []
-        # 每副本内存窗口：(seq, op) 列表，最新在前 —— 供漂移重排使用
+        # Per-replica in-memory window: (seq, op) list, newest first -- used for drift reshuffling
         self.mem = [[] for _ in range(self.N)]
         self.seq = [0] * self.N
 
@@ -71,7 +73,7 @@ class LiveMonitor:
             f.result()
 
     def push(self, r, op):
-        """将 op 写入副本 r 顶部（新 seq），并更新内存窗口。"""
+        """Write op to the top (new seq) of replica r and update the in-memory window."""
         self.seq[r] += 1
         self.mem[r].insert(0, (self.seq[r], op))
         if len(self.mem[r]) > self.window:
@@ -79,7 +81,7 @@ class LiveMonitor:
         self.session.execute(self.prep, (self.trial, r, self.seq[r], op))
 
     def push_all(self, op):
-        """将 op 写入全部副本（并行）。"""
+        """Write op to all replicas (in parallel)."""
         futs = []
         for r in range(self.N):
             self.seq[r] += 1
@@ -91,7 +93,7 @@ class LiveMonitor:
         self._wait(futs)
 
     def push_grp(self, op, grp):
-        """将 op 仅写入 grp 中的副本（并行）。"""
+        """Write op only to the replicas in grp (in parallel)."""
         futs = []
         for r in grp:
             self.seq[r] += 1
@@ -103,10 +105,13 @@ class LiveMonitor:
         self._wait(futs)
 
     def reshuffle(self, r, rng, blk_frac=0.66):
-        """将副本 r 窗口内一个随机连续块（约 blk_frac 长度）随机置换并写回。
+        """Randomly permute one contiguous block (≈blk_frac length) in replica r's
+        window and write it back.
 
-        仅重排既有行的 seq 位置 → 操作集不变（maxlag=0），仅顺序分歧。
-        用同分区原子批处理写回，避免读端看到"部分重排"的重复 op。
+        Only the seq positions of existing rows are reordered → operation set is
+        unchanged (maxlag=0); only the ordering diverges.
+        Uses an atomic unlogged batch write-back so readers never observe a
+        "partially reshuffled" duplicate op.
         """
         from cassandra.query import BatchStatement, BatchType
 
@@ -116,8 +121,8 @@ class LiveMonitor:
         blk = max(2, int(n * blk_frac))
         p = rng.randrange(0, n - blk + 1)
         sub = self.mem[r][p:p + blk]
-        # 关键：把 op 与 seq 解绑，打乱 op 后重新配对写回，
-        # 使 DB 中 seq→op 映射真正发散（按 seq 读取的窗口顺序随之变化）。
+        # Key step: unbind ops from seqs, shuffle the ops, then re-pair and write back,
+        # so the DB's seq→op mapping truly diverges (window order read by seq changes).
         seqs = [s for s, _ in sub]
         ops = [o for _, o in sub]
         rng.shuffle(ops)
@@ -134,15 +139,17 @@ class LiveMonitor:
         A = list(range(self.N // 2))
         B = list(range(self.N // 2, self.N))
 
-        # mark 在阶段开始时打点：监控据此标注"当前阶段"，保证
-        # 漂移期的采样被正确标记为 drift（用于检测延迟/稳态误报统计）。
+        # mark() stamps at phase starts: the monitor labels the "current phase" from
+        # these, ensuring drift-period samples are tagged as drift (for detection
+        # latency / steady-state false-alarm statistics).
         self.mark(0, "steady")
-        # 稳态：全量规范投递
+        # Steady state: full canonical delivery
         for k in range(self.steady):
             self.push_all(all_ops[k])
             time.sleep(1.0 / self.rate)
 
-        # 排序漂移：不新增 op，副本独立重排窗口（集合一致 → maxlag=0）
+        # Ordering drift: no new ops; replicas independently reshuffle windows
+        # (set-convergent → maxlag=0)
         self.mark(1, "drift")
         for k in range(self.drift):
             jit = self.drift_max * (k + 1) / self.drift
@@ -151,13 +158,13 @@ class LiveMonitor:
                     self.reshuffle(r, rng)
             time.sleep(1.0 / self.rate)
 
-        # 收敛：全量规范投递，冲刷窗口分歧
+        # Convergence: full canonical delivery flushes window divergence
         self.mark(2, "converge")
         for k in range(self.conv):
             self.push_all(all_ops[self.steady + k])
             time.sleep(1.0 / self.rate)
 
-        # 集合发散：op 只投递 A 或 B（Jaccard 下降，τ̂ 保持≈0）
+        # Set divergence: ops delivered only to A or B (Jaccard drops, τ̂ stays ≈0)
         self.mark(3, "partition")
         for k in range(self.partition):
             op = all_ops[self.steady + self.conv + k]
@@ -165,7 +172,7 @@ class LiveMonitor:
             self.push_grp(op, grp)
             time.sleep(1.0 / self.rate)
 
-        # 愈合：全量规范投递
+        # Healing: full canonical delivery
         self.mark(4, "heal")
         for k in range(self.heal):
             self.push_all(all_ops[self.steady + self.conv + self.partition + k])
@@ -192,7 +199,9 @@ class LiveMonitor:
         d = [tau(sigma, w) for w in windows]
         total = sum(d)
         M = len(op_set)
-        th = tauhat(total, self.N, M)
+        # Effective normalization (§5.1): Z_eff = Σ_i |Li|(|Li|−1)/2, handles
+        # incomplete windows during the partition phase
+        th = tauhat_effective(total, windows)
         g = gini(d)
         lens = [len(w) for w in windows]
         maxlag = max(lens) - min(lens)
@@ -234,14 +243,14 @@ class LiveMonitor:
                          snap["maxlag"], snap["M"], snap["alert"], cur))
                 except Exception:
                     pass
-                log.info("monitor trial=%d phase=%s τ̂=%.4f maxlag=%d jac=%.3f",
+                log.info("monitor trial=%d phase=%s tauhat=%.4f maxlag=%d jac=%.3f",
                          self.trial, cur, snap["tauhat"], snap["maxlag"], snap["jaccard"])
             time.sleep(interval)
         return self.samples
 
 
 def analyze_live(samples, trial_id, drift_max, threshold):
-    """从采样序列计算检测延迟/误报/峰值。"""
+    """Compute detection latency / false alarms / peak from the sample series."""
     markers = [s for s in samples if s.get("marker")]
     phase_times = {}
     for s in markers:
@@ -285,7 +294,7 @@ def analyze_live(samples, trial_id, drift_max, threshold):
 
 
 def run_e4(cfg, tm, session):
-    log.info("=== E4: τ 实时监控 ===")
+    log.info("=== E4: real-time tau monitoring ===")
     results = []
     series = []
     for i, drift_max in enumerate((0.1, 0.2, 0.4, 0.6)):
@@ -299,8 +308,8 @@ def run_e4(cfg, tm, session):
         r = analyze_live(samples, trial_id, drift_max, cfg["monitor"]["threshold"])
         if r:
             results.append(r)
-            log.info("E4[drift_max=%s] 检测延迟=%s maxlag@检测=%s 稳态误报=%d/%d "
-                     "峰值τ̂=%s 分区峰值τ̂=%s jac分区min=%s jac愈合max=%s",
+            log.info("E4[drift_max=%s] detect_delay=%s maxlag@detect=%s steady_false_alarms=%d/%d "
+                     "peak_tauhat=%s partition_peak_tauhat=%s jac_partition_min=%s jac_heal_max=%s",
                      drift_max, r["detect_delay_s"], r["maxlag_at_detect"],
                      r["false_alarms_steady"], r["steady_samples"],
                      r["peak_tauhat"], r["peak_partition_tauhat"],
@@ -327,7 +336,7 @@ def main():
     ks = cfg["cluster"]["keyspace"]
     cluster, session = common.get_session(cfg)
     try:
-        # 清理旧监控 trial（避免残留）
+        # Clean up stale monitor trials (avoid residue)
         del_rl = session.prepare(f"DELETE FROM {ks}.replica_logs WHERE trial=? AND replica=?")
         del_mon = session.prepare(f"DELETE FROM {ks}.monitor_series WHERE trial=?")
         for i in range(4):

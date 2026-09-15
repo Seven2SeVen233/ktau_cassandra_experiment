@@ -1,28 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Kendall-Tau 日志协调实验统一入口。
+"""Unified entry point for the Kendall-Tau log reconciliation experiments.
 
-用法:
+Usage:
     python run.py <phase> [args]
 
 Phases:
-    env      生成 .env（把 config.yaml 的 docker 段同步给 docker compose）
-    up       启动 Cassandra 集群并等待全部节点健康
-    down     停止并清理集群
-    fetch    下载 Loghub trace（默认 BGL，可按 config.yaml data.dataset）
-    init     初始化 keyspace 与数据表（需集群已启动）
-    ingest   解析并导入 trace 到 Cassandra（需集群已启动）
-    core     E1–E6a 核心实验（离线，仅需 data/ 下的 trace 文件）
-    monitor  E4 τ 实时监控（需集群已启动）
-    perf     性能/资源采集，默认 90s，可传时长: python run.py perf 30
-    analyze  汇总 results/*.csv 生成 experiment_report.md
-    test     核心模块冒烟测试（离线，快速自检）
-    all      完整流水线: env → up → fetch → init → ingest → core → monitor → perf → analyze
+    env      generate .env (sync the docker section of config.yaml to docker compose)
+    up       start the Cassandra cluster and wait for all nodes to be healthy
+    down     stop and clean up the cluster
+    fetch    download the Loghub trace (default BGL, per config.yaml data.dataset)
+    init     initialize the keyspace and data tables (requires a running cluster)
+    ingest   parse and import the trace into Cassandra (requires a running cluster)
+    core     E1–E6a core experiments (offline; only needs the trace file under data/)
+    monitor  E4 real-time τ monitoring (requires a running cluster)
+    perf     performance/resource collection, default 90s; pass a duration:
+             python run.py perf 30
+    analyze  summarize results/*.csv into experiment_report.md
+    test     smoke tests for the core modules (offline, quick self-check)
+    all      full pipeline: env → up → fetch → init → ingest → core → monitor → perf → analyze
 
-示例:
-    python run.py all                  # 一键完整复现
-    python run.py analyze              # 仅重新生成汇总报告
-    python run.py monitor              # 单独跑 E4 实时监控
+Examples:
+    python run.py all                  # one-click full reproduction
+    python run.py analyze              # regenerate only the summary report
+    python run.py monitor              # run E4 real-time monitoring alone
 """
 import os
 import subprocess
@@ -64,10 +65,10 @@ def phase_up():
         return False
     if compose(["up", "-d", "--wait"]):
         return True
-    # 旧版 compose 不支持 --wait：退化为后台启动
+    # Older compose versions do not support --wait: fall back to background start
     if not compose(["up", "-d"]):
         return False
-    print("! 当前 compose 不支持 --wait，请稍后用 `python run.py ps` 观察健康状态")
+    print("! this compose does not support --wait; observe health later with `python run.py ps`")
     return True
 
 
@@ -137,10 +138,10 @@ def main():
     extra = args[1:]
     if phase == "all":
         ok = all(PHASES[p]() for p in ALL)
-        print("流水线完成" if ok else "流水线失败，请检查上方输出")
+        print("pipeline completed" if ok else "pipeline failed; check the output above")
         sys.exit(0 if ok else 1)
     if phase not in PHASES:
-        print(f"未知 phase: {phase}\n\n{HELP}")
+        print(f"unknown phase: {phase}\n\n{HELP}")
         sys.exit(2)
     ok = PHASES[phase](*extra)
     sys.exit(0 if ok else 1)

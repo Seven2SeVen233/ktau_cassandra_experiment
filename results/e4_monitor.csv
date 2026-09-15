@@ -1,0 +1,5 @@
+trial,drift_max,threshold,detect_delay_s,maxlag_at_detect,false_alarms_steady,steady_samples,peak_tauhat,peak_partition_tauhat,jac_partition_min,jac_heal_max,n_samples
+20000,0.1,0.05,1.297,0,0,2,0.3053,0.0,0.4082,0.949,7
+20001,0.2,0.05,0.134,0,0,2,0.3809,0.0,0.4048,0.9762,7
+20002,0.4,0.05,1.191,0,0,2,0.4,0.0,0.4286,0.8095,7
+20003,0.6,0.05,1.134,0,0,2,0.4349,0.0,0.4286,0.949,8

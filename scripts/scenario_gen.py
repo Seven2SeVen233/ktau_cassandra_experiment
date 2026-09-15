@@ -1,8 +1,11 @@
-"""场景生成器（§5.4）：从真实 trace 构造后分区协调场景。
+"""Scenario generator (§5.4): constructs post-partition reconciliation scenarios
+from real traces.
 
-- 全局：trace 操作 → 逻辑副本归属（node 哈希取模）、语义类型、冲突键
-- 每 trial：采样 M 个发散操作 D，构建因果 DAG（链边 + 跨副本边，调节因果密度），
-  生成各副本局部日志（观测子集 + 并发对抖动噪声 + 时钟偏移）
+- Global: trace operations → logical replica assignment (node hash modulo),
+  semantic type, conflict key
+- Per trial: sample M divergent operations D, build a causal DAG (chain edges +
+  cross-replica edges, tuning causal density), and generate each replica's local
+  log (observed subset + concurrent-pair jitter noise + clock skew)
 """
 import hashlib
 import random
@@ -12,7 +15,7 @@ import numpy as np
 
 
 def assign_replicas(ops_by_node, N, rng):
-    """唯一 node → 逻辑副本（轮转），保持稳定。返回 {node: replica}。"""
+    """Unique node → logical replica (round-robin), kept stable. Returns {node: replica}."""
     nodes = sorted(ops_by_node.keys())
     node_replica = {}
     for i, node in enumerate(nodes):
@@ -21,7 +24,7 @@ def assign_replicas(ops_by_node, N, rng):
 
 
 def op_type_from_level(level, label):
-    """BGL Level/Label → 操作语义类型（§5.3 映射）。"""
+    """BGL Level/Label → operation semantic type (§5.3 mapping)."""
     lv = (level or "").upper()
     if lv in ("FATAL", "SEVERE", "ERROR") or (label and label != "-"):
         return "cas"
@@ -31,7 +34,7 @@ def op_type_from_level(level, label):
 
 
 def reachability(adj, nodes):
-    """返回 {(a,b): 可达}，b 从 a 出发可达。"""
+    """Returns {(a,b): reachable}, i.e., b is reachable from a."""
     reach = set()
     for a in nodes:
         seen = {a}
@@ -49,7 +52,7 @@ def reachability(adj, nodes):
 
 
 class Scenario:
-    """一次 trial 的协调场景。"""
+    """Reconciliation scenario for a single trial."""
 
     def __init__(self, ops, D, replica_logs, causal_edges, adj, causal_pairs,
                  n_ab, partitions, leader_idx, skew, N, causal_density, conflict_groups):
@@ -69,17 +72,18 @@ class Scenario:
 
 
 class TraceModel:
-    """从 trace 构造的全局操作池。"""
+    """Global operation pool constructed from a trace."""
 
     def __init__(self, ops_by_node, N, K=8):
         self.N = N
         self.K = K
         self.node_replica = {}
         self.ops = {}  # op_id -> meta
-        self.ops_by_replica = {}  # replica -> [op_id (按 ts)]
+        self.ops_by_replica = {}  # replica -> [op_id (ordered by ts)]
         self.all_op_ids = []
         rng = random.Random(42)
-        # node -> replica 稳定分配（基于 node 名哈希，而非轮转，保证可复现且均衡）
+        # Stable node → replica assignment (based on node-name hash, not round-robin,
+        # to guarantee reproducibility and balance)
         for node in sorted(ops_by_node.keys()):
             self.node_replica[node] = int(hashlib.md5(node.encode()).hexdigest(), 16) % N
         for replica in range(N):
@@ -100,11 +104,12 @@ class TraceModel:
 
 def sample_conflict_group(tm, seed, M, conflict, max_tries=50,
                           obs=0.9, noise=0.05, skew_us=500.0):
-    """采样 M 个操作构成单冲突组（并发连通），并构建场景。
+    """Sample M operations forming a single conflict group (concurrency-connected)
+    and build the scenario.
 
-    conflict: 'low'|'high' → 目标因果密度 0.35 / 0.10
-    obs / noise / skew_us: 副本观测比例、并发对抖动噪声、时钟偏移上限(µs)，
-    与 config.yaml 的 model 段对应。
+    conflict: 'low'|'high' → target causal density 0.35 / 0.10
+    obs / noise / skew_us: replica observation ratio, concurrent-pair jitter noise,
+    clock-skew bound (µs), matching the model section of config.yaml.
     """
     rng = random.Random(seed)
     N = tm.N
@@ -115,9 +120,10 @@ def sample_conflict_group(tm, seed, M, conflict, max_tries=50,
         D = rng.sample(tm.all_op_ids, M)
         ops_sorted = sorted(D, key=lambda o: ops[o]["ts"])
 
-        # --- 构造因果 DAG：链边(p_in) + 跨副本边(p_cross)，p_cross 二分调节密度 ---
+        # --- Build causal DAG: chain edges (p_in) + cross-replica edges (p_cross,
+        #     binary search tunes density) ---
         adj = {o: [] for o in D}
-        # 链边：副本内按 ts 相邻观测操作
+        # Chain edges: temporally adjacent observed ops within a replica
         for rep in range(N):
             seq = [o for o in tm.ops_by_replica[rep] if o in D]
             for i in range(len(seq) - 1):
@@ -152,22 +158,23 @@ def sample_conflict_group(tm, seed, M, conflict, max_tries=50,
             else:
                 hi = pc
         adj = best_adj
-        # 确保边集无环（所有边按 ts 定向，天然无环）
+        # The edge set is acyclic by construction (all edges oriented by ts)
 
-        # --- 各副本局部日志 ---
+        # --- Per-replica local logs ---
         reach = reachability(adj, D)
         replica_logs = []
         for rep in range(N):
             seq = [o for o in tm.ops_by_replica[rep] if o in D]
             log = [o for o in seq if (o in D and (ops[o]["issuer"] == rep or rng.random() < obs))]
-            # 副本日志必须因果一致（ts 序天然满足）；施加并发对抖动噪声
+            # Replica logs must be causally consistent (ts order satisfies this by
+            # construction); apply concurrent-pair jitter noise
             for i in range(len(log) - 1):
                 if rng.random() < noise and (log[i + 1], log[i]) not in reach \
                         and (log[i], log[i + 1]) not in reach:
                     log[i], log[i + 1] = log[i + 1], log[i]
             replica_logs.append(log)
 
-        # --- 一致因果约束 ---
+        # --- Consistent causal constraints ---
         causal_pairs = []
         n_ab = {}
         for a in D:
@@ -177,13 +184,13 @@ def sample_conflict_group(tm, seed, M, conflict, max_tries=50,
                     if n > 0:
                         causal_pairs.append((a, b))
                         n_ab[(a, b)] = n
-        # 计算最终密度（仅保留被观测到的约束对近似；用全图密度）
+        # Compute final density (approx. by observed constraint pairs only; use full-graph density)
         d_final = density(adj)
 
-        # --- 冲突组（并发图连通分量）---
+        # --- Conflict groups (concurrency graph connected components) ---
         concurrency = {(a, b) for a in D for b in D if a != b
                        and (a, b) not in reachability(adj, D) and (b, a) not in reachability(adj, D)}
-        # 用并查集求并发连通分量
+        # Union-find over concurrency-connected components
         parent = {o: o for o in D}
 
         def find(x):
@@ -204,12 +211,12 @@ def sample_conflict_group(tm, seed, M, conflict, max_tries=50,
             groups.setdefault(find(o), []).append(o)
         group_sizes = sorted((len(v) for v in groups.values()), reverse=True)
         if len(groups) == 1:
-            break  # 单冲突组
-        # 若未连通，接受最大组（在后续可能重试）
+            break  # single conflict group
+        # If not connected, accept the largest group (may retry later)
         if max(group_sizes, default=0) >= M * 0.6:
             break
 
-    # 分区（leader overwrite 用）：多数派/少数派
+    # Partitioning (for leader overwrite): majority/minority
     rng2 = random.Random(seed + 1)
     if conflict == "low":
         maj = 6
@@ -229,7 +236,7 @@ def sample_conflict_group(tm, seed, M, conflict, max_tries=50,
 
 
 def parse_bgl_line(line):
-    """解析 BGL 行：Label UnixTs Date Node Ts2 Node2 Component Type Level Content..."""
+    """Parse a BGL line: Label UnixTs Date Node Ts2 Node2 Component Type Level Content..."""
     p = line.rstrip("\n").split(" ")
     if len(p) < 9:
         return None
@@ -247,8 +254,107 @@ def parse_bgl_line(line):
     }
 
 
+def disseminate(sc, seed, loss=0.0, jitter=60.0):
+    """Dissemination phase (§4.1 assumption): causally ordered gossip makes every
+    replica's log complete and causally closed.
+
+    Per replica:
+      1) keep the relative order of the observed subset L (adjacent-pair
+         constraints) -- this constitutes that replica's vote on concurrent pairs;
+      2) missing operations G = D \\ L are treated as arriving via causally ordered
+         gossip; with loss>0 they are dropped with probability loss (degraded
+         dissemination diagnosis, re-creating "exactly-one observation" cases);
+      3) final log = linear extension of (causal DAG edges ∪ L adjacent-order
+         constraints); unobserved concurrent operations are ordered by
+         ts + per-replica arrival jitter (simulating different delivery orders).
+
+    Returns (new_logs, causal_pairs, n_ab): the complete logs after dissemination
+    and the recomputed consistent causal constraints (with loss=0, every causal
+    edge has n_ab = N, i.e., agreement across all replicas).
+    """
+    rng = random.Random(seed)
+    ops = sc.ops
+    D = set(sc.D)
+    new_logs = []
+    for L in sc.replica_logs:
+        # Observed relative order = that replica's vote; it is only a priority key
+        # for topological ordering (causal DAG constraints always take precedence),
+        # so votes are always linear extensions of the DAG (causal closure holds by
+        # construction); concurrent pairs keep the observed votes, while observed
+        # orders contradicting causality are automatically corrected (fixed after
+        # dissemination by causal closure).
+        L_pos = {o: i for i, o in enumerate(L)}
+        G = [o for o in D if o not in L_pos]
+        if loss > 0:
+            G = [o for o in G if rng.random() >= loss]
+        nodes = set(L) | set(G)
+        jit = {o: rng.uniform(-jitter, jitter) for o in G}
+
+        def key(o):
+            if o in L_pos:
+                return (0.0, float(L_pos[o]))  # observed: prefer local observation order
+            return (1.0, ops[o]["ts"] + jit[o])  # unobserved: order by delivery arrival
+
+        new_logs.append(_linear_extension(sc.adj, nodes, [], key, ops))
+    # Recompute consistent causal constraints (n_ab = N under full ballots unless loss)
+    causal_pairs, n_ab = [], {}
+    for a in D:
+        for b in sc.adj.get(a, ()):
+            if b in D:
+                n = sum(1 for rl in new_logs if a in rl and b in rl)
+                if n > 0:
+                    causal_pairs.append((a, b))
+                    n_ab[(a, b)] = n
+    return new_logs, causal_pairs, n_ab
+
+
+def _linear_extension(adj, nodes, extra_edges, key_fn, ops):
+    """Topological sort of (DAG adj ∪ extra_edges); key_fn decides the ready-queue
+    order; falls back to ts order on cycles."""
+    nodes = set(nodes)
+    adj_all = {o: [] for o in nodes}
+    indeg = {o: 0 for o in nodes}
+    for o in nodes:
+        for b in adj.get(o, ()):
+            if b in nodes:
+                adj_all[o].append(b)
+                indeg[b] += 1
+    for a, b in extra_edges:
+        if a in nodes and b in nodes:
+            adj_all[a].append(b)
+            indeg[b] += 1
+    ready = [o for o in nodes if indeg[o] == 0]
+    ready.sort(key=key_fn)
+    res = []
+    while ready:
+        o = ready.pop(0)
+        res.append(o)
+        for b in adj_all[o]:
+            indeg[b] -= 1
+            if indeg[b] == 0:
+                ready.append(b)
+                ready.sort(key=key_fn)
+    if len(res) != len(nodes):
+        res = sorted(nodes, key=lambda o: ops[o]["ts"])
+    return res
+
+
+def dissemination_structure(sc, new_logs):
+    """Post-dissemination structural diagnosis: ballot length range, exactly-one
+    observation count, consistent-causal-pair violation count (for a given order)."""
+    D = set(sc.D)
+    lens = [len(rl) for rl in new_logs]
+    exactly_one = 0
+    for a in D:
+        for b in sc.adj.get(a, ()):
+            if b in D:
+                exactly_one += sum(1 for rl in new_logs if (a in rl) != (b in rl))
+    return {"min_len": min(lens), "max_len": max(lens),
+            "exactly_one_observers": exactly_one}
+
+
 def parse_bgl_file(path, max_ops=2000):
-    """读取 BGL 日志文件 → {node: [op meta]}（含 id、ts(µs) 微秒时间戳）。"""
+    """Read a BGL log file → {node: [op meta]} (with id, ts(µs) microsecond timestamps)."""
     ops_by_node = {}
     with open(path, encoding="utf-8", errors="replace") as f:
         for i, line in enumerate(f):
@@ -257,7 +363,7 @@ def parse_bgl_file(path, max_ops=2000):
             m = parse_bgl_line(line)
             if m is None:
                 continue
-            # 解析 ts2: yyyy-mm-dd-hh.mm.ss.uuuuuu → 微秒
+            # Parse ts2: yyyy-mm-dd-hh.mm.ss.uuuuuu → microseconds
             ts2 = m["ts2"]
             try:
                 date_part = ts2[:10]

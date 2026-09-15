@@ -1,4 +1,4 @@
-"""Phase 0: 初始化 keyspace 与全部数据表，并校验集群状态。"""
+"""Phase 0: initialize the keyspace and all data tables, and verify cluster state."""
 import os
 import sys
 
@@ -9,7 +9,7 @@ from common import log
 
 
 def build_ddl(ks, rf):
-    """由配置的 keyspace / replication_factor 构造 DDL。"""
+    """Build DDL from the configured keyspace / replication_factor."""
     return [
         f"CREATE KEYSPACE IF NOT EXISTS {ks} WITH replication = "
         f"{{'class': 'SimpleStrategy', 'replication_factor': {rf}}}",
@@ -62,7 +62,7 @@ def main():
     try:
         for stmt in ddl:
             session.execute(stmt)
-        # 校验
+        # Verification
         rows = session.execute("SELECT release_version FROM system.local")
         log.info("Cassandra release_version = %s", rows.one()[0])
         keys = session.execute("SELECT keyspace_name FROM system_schema.keyspaces "

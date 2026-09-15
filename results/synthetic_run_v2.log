@@ -1,0 +1,74 @@
+﻿python.exe : 09:57:51 INFO ktau synthetic model: 500 ops, 10 replicas, 8 keys
+At line:15 char:3094
++ ... pgrep\bin'; & ".venv\Scripts\python.exe" scripts\run_synthetic_eval.p ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (09:57:51 INFO k...eplicas, 8 keys:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+09:57:51 INFO ktau === [synthetic] E1: 因果分解验证 ===
+09:57:51 INFO ktau E1 汇总:
+                       tau_causal  tau_contested  tauhat  info_retention
+conflict strategy                                                       
+high     crdt_lww         16.2000       711.6000  0.3151          0.6849
+         crdt_pure         0.0000       627.2000  0.2715          0.7285
+         leader            2.7333       119.2667  0.0529          0.9471
+         lww              16.2000       711.6000  0.3151          0.6849
+         ranked_pairs      0.0000       522.5333  0.2259          0.7741
+         vc                0.0000       831.8667  0.3603          0.6397
+low      crdt_lww         55.3333       588.6000  0.2832          0.7168
+         crdt_pure         0.0000       444.2667  0.1956          0.8044
+         leader            8.2667       272.4667  0.1238          0.8762
+         lww              55.3333       588.6000  0.2832          0.7168
+         ranked_pairs      0.0000       365.4667  0.1610          0.8390
+         vc                0.0000       539.4000  0.2377          0.7623
+09:57:51 INFO ktau === [synthetic] E2: 端到端对比（高冲突） ===
+09:57:51 INFO ktau E2 汇总:
+              ops_retained  auto_coverage  info_retention  tau_causal  semantic_validity    gini  time_ms
+strategy                                                                                                 
+crdt_lww              1.00         1.0000          0.6747        14.4             0.7487  0.1090   0.0124
+crdt_pure             1.00         0.5917          0.7233         0.0             0.7281  0.1309   0.0234
+leader                0.35         1.0000          0.9655         1.0             1.0000  0.2915   0.0070
+lww                   1.00         1.0000          0.6747        14.4             0.7487  0.1090   0.0137
+ranked_pairs          1.00         1.0000          0.7682         0.0             0.8698  0.1701   0.8006
+vc                    1.00         0.5917          0.6133         0.0             0.7787  0.1073   0.0463
+09:57:51 INFO ktau === [synthetic] E3: Ranked Pairs vs 精确 Kemeny ===
+09:58:45 INFO ktau E3 汇总:
+   rp_exact_rate  avg_excess_pct  max_excess_pct  kemeny_ms
+M                                                          
+4         1.0000          0.0000          0.0000     0.4897
+5         0.9167          0.6022          8.0000     2.8782
+6         0.9583          0.2874          6.8966    19.9212
+7         0.7500          0.5739          2.5641   384.6085
+8         0.8333          0.2985          2.4390  1803.7009
+09:58:45 INFO ktau === [synthetic] E5: 性能与扩展性 ===
+09:59:03 INFO ktau E5 汇总(p50):
+     tau_total_ms     rp_ms  lww_ms   vc_ms  merge_thr_ops_s
+M                                                           
+5          1.8165    0.1618  0.0296  0.0461       30898.7735
+8          4.2324    0.3875  0.0393  0.0624       20649.9485
+10         4.3266    0.4042  0.0264  0.0505       24738.3124
+15         9.6911    0.9109  0.0388  0.0806       16468.2533
+20        17.3213    1.6496  0.0511  0.1083       12124.3578
+30        40.2725    4.0589  0.0657  0.1695        7392.0025
+50       144.9689   14.5827  0.0859  0.3053        3429.0707
+100     1094.8299  112.2055  0.2087  1.1606         891.2267
+09:59:03 INFO ktau === [synthetic] E6a: 分区不对称 ===
+09:59:04 INFO ktau E6a 汇总:
+                            ops_retained  info_retention
+minority_frac strategy                                  
+0.1           leader              0.9000          0.7430
+              lww                 1.0000          0.6751
+              ranked_pairs        1.0000          0.7748
+0.2           leader              0.7917          0.7997
+              lww                 1.0000          0.6780
+              ranked_pairs        1.0000          0.7726
+0.3           leader              0.6889          0.8455
+              lww                 1.0000          0.6964
+              ranked_pairs        1.0000          0.7801
+0.4           leader              0.5806          0.9002
+              lww                 1.0000          0.6934
+              ranked_pairs        1.0000          0.7786
+0.5           leader              0.5083          0.9158
+              lww                 1.0000          0.6903
+              ranked_pairs        1.0000          0.7773
+09:59:04 INFO ktau 合成实验完成，结果已写入 C:\Users\34333\OneDrive\Desktop\Kendall-tau\ktau_cassandra_experiment\results\synthetic

@@ -1,9 +1,10 @@
-"""基线合并策略（§6.4）：LWW、Vector Clock、Pure CRDT、CRDT+LWW 回退、Leader overwrite。
+"""Baseline merge strategies (§6.4): LWW, Vector Clock, Pure CRDT, CRDT+LWW fallback,
+Leader overwrite.
 
-统一接口：merge_<name>(scenario, seed) -> (sigma, coverage, unresolved)
-- sigma: 合并后的总序（op_id 列表）
-- coverage: 自动化覆盖率（无需应用代码/回退的比例）
-- unresolved: 需应用介入的操作数
+Unified interface: merge_<name>(scenario, seed) -> (sigma, coverage, unresolved)
+- sigma: merged total order (op_id list)
+- coverage: automation coverage (fraction resolvable without application code/fallback)
+- unresolved: number of operations requiring application intervention
 """
 import random
 
@@ -26,8 +27,9 @@ def merge_lww(scenario, seed=0):
     return items, 1.0, 0
 
 
-def topo_order(scenario, seed=0, tiebreak="random"):
-    """DAG 拓扑序；并发对按 tiebreak（random 或 ts）处理。"""
+def topo_order(scenario, seed=0, tiebreak="ts"):
+    """DAG topological order. tiebreak: 'ts' (ts primary, random secondary) or
+    'random' (purely random)."""
     rng = random.Random(seed)
     adj = {o: [] for o in scenario.D}
     indeg = {o: 0 for o in scenario.D}
@@ -35,9 +37,14 @@ def topo_order(scenario, seed=0, tiebreak="random"):
         if a in scenario.D and b in scenario.D:
             adj[a].append(b)
             indeg[b] += 1
+    if tiebreak == "ts":
+        def key(o):
+            return (scenario.ops[o]["ts"], rng.random())
+    else:
+        def key(o):
+            return rng.random()
     ready = [o for o in scenario.D if indeg[o] == 0]
-    # 相同就绪条件下按 (ts, rng) 稳定
-    ready.sort(key=lambda o: (scenario.ops[o]["ts"], rng.random()))
+    ready.sort(key=key)
     res = []
     while ready:
         o = ready.pop(0)
@@ -46,16 +53,17 @@ def topo_order(scenario, seed=0, tiebreak="random"):
             indeg[b] -= 1
             if indeg[b] == 0:
                 ready.append(b)
-                ready.sort(key=lambda x: (scenario.ops[x]["ts"], rng.random()))
+                ready.sort(key=key)
     if len(res) != len(scenario.D):
-        # 出现环（不应发生）：回退 ts 序
+        # Cycle appeared (should not happen): fall back to ts order
         res = sorted(scenario.D, key=lambda o: scenario.ops[o]["ts"])
     return res
 
 
 def merge_vc(scenario, seed=0):
-    """Vector Clock：只保证因果边；并发同 key 不可交换写交由应用。"""
-    sigma = topo_order(scenario, seed=seed)
+    """Vector Clock: guarantees causal edges only; concurrent same-key
+    non-commutative writes are deferred to the application (random decision)."""
+    sigma = topo_order(scenario, seed=seed, tiebreak="random")
     unresolved = 0
     for o in scenario.D:
         if scenario.ops[o]["otype"] not in COMMUTATIVE:
@@ -66,7 +74,8 @@ def merge_vc(scenario, seed=0):
 
 
 def _has_concurrent_same_key_conflict(scenario, o):
-    """op o 是否存在同 key 且与 o 并发的不可交换操作（需应用解决）。"""
+    """Does op o have a same-key non-commutative operation concurrent with o
+    (requiring application resolution)?"""
     m = scenario.ops[o]
     if m["otype"] in COMMUTATIVE:
         return False
@@ -78,14 +87,14 @@ def _has_concurrent_same_key_conflict(scenario, o):
         om = scenario.ops[other]
         if om["key"] != key or om["otype"] in COMMUTATIVE:
             continue
-        # 判断 o 与 other 是否并发（无因果路径）
+        # Check whether o and other are concurrent (no causal path)
         if not _comparable(scenario, oid, other):
             return True
     return False
 
 
 def _comparable(scenario, a, b):
-    """a、b 是否因果可比（有路径）。"""
+    """Are a and b causally comparable (there is a path)?"""
     if a == b:
         return True
     seen = set()
@@ -104,15 +113,17 @@ def _comparable(scenario, a, b):
 
 
 def merge_crdt_pure(scenario, seed=0):
-    """Pure CRDT：可交换操作自动合并（ts 序）；不可交换并发写未决。"""
+    """Pure CRDT: commutative operations merge automatically (ts order);
+    non-commutative concurrent writes stay unresolved."""
     resolved = [o for o in scenario.D if scenario.ops[o]["otype"] in COMMUTATIVE]
     unresolved_ops = [
         o for o in scenario.D
         if scenario.ops[o]["otype"] not in COMMUTATIVE
         and _has_concurrent_same_key_conflict(scenario, o)
     ]
-    # 未决操作也需一个总序（论文表4中 pure CRDT 信息保留≈LWW，采用 ts 序），
-    # 但自动化覆盖率只统计可自动解决的部分。
+    # Unresolved operations still need a total order (in Table 4 of the paper,
+    # pure CRDT information retention ≈ LWW, using ts order),
+    # but automation coverage only counts the auto-resolvable part.
     sigma = sorted(scenario.D, key=lambda o: scenario.ops[o]["ts"])
     unresolved = len(unresolved_ops)
     coverage = (len(scenario.D) - unresolved) / max(1, len(scenario.D))
@@ -120,20 +131,29 @@ def merge_crdt_pure(scenario, seed=0):
 
 
 def merge_crdt_lww(scenario, seed=0):
-    """CRDT + LWW 回退：可交换走 CRDT（ts 序），不可交换回退 LWW 时间戳。"""
+    """CRDT + LWW fallback: commutative ops go through CRDT (ts order),
+    non-commutative ops fall back to LWW timestamps."""
     return merge_lww(scenario, seed=seed)
 
 
 def merge_leader(scenario, seed=0):
-    """Leader overwrite：保留最大分区（副本）的操作，按 leader 日志序；其余截断。"""
+    """Leader overwrite: retain operations issued in the largest partition
+    (replicas), in leader-log order; the rest are truncated."""
     if not scenario.partitions:
         return sorted(scenario.D, key=lambda o: scenario.ops[o]["ts"]), 1.0, 0
     leader = max(scenario.partitions, key=len)
     leader_set = set(leader)
+    # Retain operations issued by replicas in the leader partition (in the leader
+    # replica's local log order)
     sigma = [o for o in scenario.replica_logs[scenario.leader_idx]
-             if o in leader_set]
-    # 补充 leader 分区中未出现在日志里的操作（理论上不会发生）
-    remaining = sorted((leader_set - set(sigma)), key=lambda o: scenario.ops[o]["ts"])
+             if scenario.ops[o]["issuer"] in leader_set]
+    # Append operations issued in the leader partition that do not appear in the
+    # leader's log (should not happen in theory)
+    retained = set(sigma)
+    remaining = sorted(
+        (o for o in scenario.D
+         if scenario.ops[o]["issuer"] in leader_set and o not in retained),
+        key=lambda o: scenario.ops[o]["ts"])
     sigma = sigma + remaining
     return sigma, 1.0, 0
 
@@ -150,6 +170,24 @@ def all_strategies():
 
 
 def merge_ranked_pairs(scenario, seed=0):
+    """τ-minimizing strategy (causally constrained Ranked Pairs, §6.2 revised model).
+
+    Under partially observed ballots, causal edges are locked first (margin = +∞),
+    then contested pairs are aggregated by majority evidence; the output is always
+    a linear extension of the causal DAG (τ_causal = 0 holds unconditionally),
+    with no dissemination phase required.
+    """
+    from ranked_pairs import ranked_pairs_causal
+
+    sigma = ranked_pairs_causal(scenario.replica_logs, scenario.D, scenario.causal_edges)
+    return sigma, 1.0, 0
+
+
+def merge_ranked_pairs_unconstrained(scenario, seed=0):
+    """Plain RP (no causal pre-locking), used to quantify the repair cost of
+    "detect-and-repair": its output may violate causal edges under partial
+    observation; the §B.4 theoretical counterexample and the repair counts
+    measured in E1 come from outputs of this kind."""
     from ranked_pairs import ranked_pairs
 
     sigma = ranked_pairs(scenario.replica_logs, scenario.D)

@@ -1,4 +1,4 @@
-"""公共工具：配置加载、Cassandra 会话、日志。"""
+"""Common utilities: config loading, Cassandra session, logging."""
 import json
 import logging
 import os
@@ -20,7 +20,8 @@ log = logging.getLogger("ktau")
 def load_config():
     with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
-    # raw_file 相对路径统一相对项目根目录解析，保证任意 cwd 下可运行
+    # Relative raw_file paths are resolved against the project root so the scripts
+    # run correctly from any working directory
     raw = cfg.get("data", {}).get("raw_file")
     if raw and not os.path.isabs(raw):
         cfg["data"]["raw_file"] = os.path.join(BASE, raw)
@@ -33,9 +34,10 @@ def ensure_results():
 
 
 def get_session(cfg):
-    """建立 Cassandra 会话（尽量复用已存在的）。"""
-    # Python 3.12+ 移除了 asyncore，驱动默认 reactor 链（gevent/eventlet/libev/asyncore）
-    # 全部不可用，故先注入 asyncore shim，使 DefaultConnection 解析到 asyncio 实现。
+    """Establish a Cassandra session (reusing an existing one when possible)."""
+    # Python 3.12+ removed asyncore, so the driver's default reactor chain
+    # (gevent/eventlet/libev/asyncore) is unavailable; inject an asyncore shim so
+    # DefaultConnection resolves to the asyncio implementation.
     import sys
     import types as _types
     from cassandra.io.asyncioreactor import AsyncioConnection
